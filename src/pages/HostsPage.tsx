@@ -1,0 +1,184 @@
+import React, { useMemo, useState } from 'react'
+import { Server, Cpu, MemoryStick, Wifi, Clock, ShieldAlert, X } from 'lucide-react'
+import { HOSTS } from '../data/hosts'
+import { SelectFilter, SearchInput } from '../components/ui/Filters'
+import { Card, CardHeader } from '../components/ui/Card'
+import { Drawer } from '../components/ui/Drawer'
+import { RiskScore, RiskBar } from '../components/ui/Risk'
+import { Pill } from '../components/ui/Badge'
+import { relativeTime, formatTime } from '../lib/format'
+import type { Host } from '../types'
+import { SECURITY_EVENTS } from '../data/generator'
+import { useSoc } from '../context/SocContext'
+
+const STATUS_STYLES: Record<string, string> = {
+  Critical: 'text-sev-critical bg-sev-criticalBg border-sev-critical/30',
+  High: 'text-sev-high bg-sev-highBg border-sev-high/30',
+  Monitoring: 'text-sev-medium bg-sev-mediumBg border-sev-medium/30',
+  Low: 'text-sev-low bg-sev-lowBg border-sev-low/30',
+  Healthy: 'text-status-success bg-status-successBg border-status-success/30',
+}
+
+export function HostsPage() {
+  const { currentParams } = useSoc()
+  const [status, setStatus] = useState('All')
+  const [search, setSearch] = useState('')
+  const [selected, setSelected] = useState<Host | null>(HOSTS.find((h) => h.id === currentParams.id) ?? null)
+
+  const statuses = useMemo(() => Array.from(new Set(HOSTS.map((h) => h.status))), [])
+
+  const filtered = useMemo(() => {
+    return HOSTS.filter((h) => {
+      if (status !== 'All' && h.status !== status) return false
+      if (search) {
+        const q = search.toLowerCase()
+        if (!h.hostname.toLowerCase().includes(q) && !h.ip.includes(q) && !h.os.toLowerCase().includes(q)) return false
+      }
+      return true
+    }).sort((a, b) => b.risk - a.risk)
+  }, [status, search])
+
+  return (
+    <div className="p-4 lg:p-6 space-y-4 max-w-[1600px] mx-auto">
+      <div>
+        <h1 className="text-xl font-bold text-text-primary tracking-tight flex items-center gap-2">
+          <Server size={20} className="text-accent" /> Host Monitoring
+        </h1>
+        <p className="text-[13px] text-text-secondary mt-0.5">{HOSTS.length} endpoint agents reporting · 48 assets in scope</p>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2.5">
+        <SelectFilter label="Status" value={status} onChange={setStatus} options={statuses} />
+        <SearchInput value={search} onChange={setSearch} placeholder="Search hostname, IP, OS..." />
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {filtered.map((h) => (
+          <Card key={h.id} className="cursor-pointer hover:border-surface-borderLight transition-colors" padded={false}>
+            <button onClick={() => setSelected(h)} className="w-full text-left p-4">
+              <div className="flex items-start justify-between mb-2.5">
+                <div>
+                  <div className="font-data font-bold text-[14px] text-text-primary">{h.hostname}</div>
+                  <div className="text-[11.5px] text-text-muted">{h.role}</div>
+                </div>
+                <span className={`text-[10.5px] font-semibold px-2 py-0.5 rounded-sm border ${STATUS_STYLES[h.status]}`}>
+                  {h.status}
+                </span>
+              </div>
+
+              <div className="font-data text-[12px] text-text-secondary mb-3">{h.ip} · {h.os}</div>
+
+              <div className="flex items-center gap-3 mb-3">
+                <RiskScore score={h.risk} size="sm" />
+                <RiskBar score={h.risk} />
+              </div>
+
+              <div className="grid grid-cols-3 gap-2 text-center">
+                <MiniGauge icon={<Cpu size={11} />} label="CPU" value={`${h.cpu}%`} />
+                <MiniGauge icon={<MemoryStick size={11} />} label="MEM" value={`${h.memory}%`} />
+                <MiniGauge icon={<Wifi size={11} />} label="NET" value={`${h.network.toFixed(1)}M`} />
+              </div>
+
+              <div className="flex items-center justify-between mt-3 pt-3 border-t border-surface-border text-[11px] text-text-muted">
+                <span className="flex items-center gap-1"><Clock size={11} /> {relativeTime(h.lastSeen)}</span>
+                {h.openAlerts > 0 && (
+                  <span className="flex items-center gap-1 text-sev-high font-semibold">
+                    <ShieldAlert size={11} /> {h.openAlerts} alerts
+                  </span>
+                )}
+              </div>
+            </button>
+          </Card>
+        ))}
+      </div>
+
+      <Drawer open={!!selected} onClose={() => setSelected(null)}>
+        {selected && <HostDetail host={selected} />}
+      </Drawer>
+    </div>
+  )
+}
+
+function MiniGauge({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+  return (
+    <div className="bg-surface-3 rounded-sm py-1.5">
+      <div className="flex items-center justify-center gap-1 text-text-muted mb-0.5">
+        {icon}
+        <span className="text-[9px] uppercase tracking-wider">{label}</span>
+      </div>
+      <div className="text-[12px] font-data font-semibold text-text-primary">{value}</div>
+    </div>
+  )
+}
+
+function HostDetail({ host }: { host: Host }) {
+  const relatedEvents = SECURITY_EVENTS.filter((e) => e.host === host.hostname).slice(0, 8)
+
+  return (
+    <div className="p-6">
+      <div className="flex items-center gap-2 mb-2">
+        <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-sm border ${STATUS_STYLES[host.status]}`}>
+          {host.status}
+        </span>
+        <Pill>{host.agentStatus}</Pill>
+      </div>
+      <h2 className="font-data text-xl font-bold text-text-primary">{host.hostname}</h2>
+      <p className="text-[13px] text-text-secondary mt-1">{host.os} · {host.role}</p>
+      <p className="font-data text-[12.5px] text-text-muted mt-0.5">{host.ip}</p>
+
+      <div className="flex items-center gap-4 mt-5 bg-surface-3 border border-surface-borderLight rounded-sm p-4">
+        <RiskScore score={host.risk} size="lg" />
+        <div className="flex-1">
+          <div className="text-xxs uppercase tracking-widest text-text-muted mb-1">Risk Assessment</div>
+          <RiskBar score={host.risk} />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-3 gap-3 mt-4">
+        <Gauge label="CPU Usage" value={host.cpu} unit="%" />
+        <Gauge label="Memory" value={host.memory} unit="%" />
+        <Gauge label="Network" value={host.network} unit=" Mbps" decimals={1} />
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 mt-4">
+        <Field label="Last Seen" value={formatTime(host.lastSeen)} />
+        <Field label="Open Alerts" value={String(host.openAlerts)} />
+      </div>
+
+      <div className="mt-6 pt-5 border-t border-surface-border">
+        <div className="text-xxs font-semibold uppercase tracking-widest text-text-muted mb-2.5">Recent Events on This Host</div>
+        {relatedEvents.length > 0 ? (
+          <div className="space-y-1.5">
+            {relatedEvents.map((e) => (
+              <div key={e.id} className="flex items-center gap-2.5 bg-surface-3 border border-surface-borderLight rounded-sm px-3 py-2">
+                <span className="font-data text-[11px] text-text-muted shrink-0">{formatTime(e.timestamp)}</span>
+                <span className="text-[12px] text-text-primary truncate">{e.eventType}</span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-text-muted text-sm">No recent events recorded for this host.</p>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function Gauge({ label, value, unit, decimals = 0 }: { label: string; value: number; unit: string; decimals?: number }) {
+  const color = value > 80 ? 'text-sev-critical' : value > 60 ? 'text-sev-high' : 'text-text-primary'
+  return (
+    <div className="bg-surface-3 border border-surface-borderLight rounded-sm p-3 text-center">
+      <div className="text-xxs uppercase tracking-widest text-text-muted mb-1">{label}</div>
+      <div className={`font-data font-bold text-lg ${color}`}>{value.toFixed(decimals)}{unit}</div>
+    </div>
+  )
+}
+
+function Field({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="bg-surface-3 border border-surface-borderLight rounded-sm px-3 py-2.5">
+      <div className="text-xxs uppercase tracking-widest text-text-muted mb-1">{label}</div>
+      <div className="text-[13px] font-data text-text-primary">{value}</div>
+    </div>
+  )
+}
