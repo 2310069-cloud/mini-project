@@ -90,13 +90,17 @@ else:
 def _normalize_database_url(url_str: str) -> str:
     """Normalize common database scheme prefixes for SQLAlchemy with installed drivers."""
     if url_str.startswith("mysql://"):
-        return url_str.replace("mysql://", "mysql+pymysql://", 1)
-    if url_str.startswith("mysql2://"):
-        return url_str.replace("mysql2://", "mysql+pymysql://", 1)
-    if url_str.startswith("postgres://"):
-        return url_str.replace("postgres://", "postgresql+psycopg://", 1)
-    if url_str.startswith("postgresql://") and not url_str.startswith("postgresql+"):
-        return url_str.replace("postgresql://", "postgresql+psycopg://", 1)
+        url_str = url_str.replace("mysql://", "mysql+pymysql://", 1)
+    elif url_str.startswith("mysql2://"):
+        url_str = url_str.replace("mysql2://", "mysql+pymysql://", 1)
+    elif url_str.startswith("postgres://"):
+        url_str = url_str.replace("postgres://", "postgresql+psycopg://", 1)
+    elif url_str.startswith("postgresql://") and not url_str.startswith("postgresql+"):
+        url_str = url_str.replace("postgresql://", "postgresql+psycopg://", 1)
+
+    # In MySQL and TiDB Cloud, 'sys' is a restricted system schema where user tables cannot be created.
+    # Automatically redirect 'sys' to the default user database 'test'.
+    url_str = re.sub(r"/sys(\?|$)", r"/test\1", url_str)
     return url_str
 
 
@@ -149,34 +153,38 @@ def ensure_database_schema(engine_obj):
     try:
         with engine_obj.connect() as conn:
             conn.execute(text("SELECT 1 FROM employees LIMIT 1"))
+            return
     except Exception:
-        sql_path = PROJECT_ROOT / "data" / "adaptive_soc_backup.sql"
-        if sql_path.is_file():
-            try:
-                sql_content = sql_path.read_text(encoding="utf-8")
-                statements = []
-                current_stmt = []
-                for line in sql_content.splitlines():
-                    trimmed = line.strip()
-                    if trimmed.startswith("--") or trimmed.startswith("/*") or not trimmed:
-                        continue
-                    current_stmt.append(line)
-                    if trimmed.endswith(";"):
-                        stmt_text = "\n".join(current_stmt).strip()
-                        if stmt_text.endswith(";"):
-                            stmt_text = stmt_text[:-1].strip()
-                        if stmt_text:
-                            statements.append(stmt_text)
-                        current_stmt = []
-                with engine_obj.begin() as conn:
-                    for stmt in statements:
-                        try:
-                            conn.execute(text(stmt))
-                        except Exception as e:
-                            print(f"[DB Init Warning] {e}")
-                print("[DB Init] Database schema initialized successfully.")
-            except Exception as exc:
-                print(f"[DB Init Error] Failed to initialize schema: {exc}")
+        pass
+
+    sql_path = PROJECT_ROOT / "data" / "adaptive_soc_backup.sql"
+    if sql_path.is_file():
+        try:
+            sql_content = sql_path.read_text(encoding="utf-8")
+            statements = []
+            current_stmt = []
+            for line in sql_content.splitlines():
+                trimmed = line.strip()
+                if trimmed.startswith("--") or trimmed.startswith("/*") or not trimmed:
+                    continue
+                current_stmt.append(line)
+                if trimmed.endswith(";"):
+                    stmt_text = "\n".join(current_stmt).strip()
+                    if stmt_text.endswith(";"):
+                        stmt_text = stmt_text[:-1].strip()
+                    if stmt_text:
+                        statements.append(stmt_text)
+                    current_stmt = []
+            with engine_obj.connect() as conn:
+                for stmt in statements:
+                    try:
+                        conn.execute(text(stmt))
+                        conn.commit()
+                    except Exception as e:
+                        pass
+            print("[DB Init] Database schema initialized successfully.")
+        except Exception as exc:
+            print(f"[DB Init Error] Failed to initialize schema: {exc}")
 
 
 class LazyEngineProxy:
