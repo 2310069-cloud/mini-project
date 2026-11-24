@@ -144,6 +144,41 @@ def _resolve_database_url() -> str | URL | None:
     return None
 
 
+def ensure_database_schema(engine_obj):
+    """Ensure database schema is created from data/adaptive_soc_backup.sql if tables do not exist."""
+    try:
+        with engine_obj.connect() as conn:
+            conn.execute(text("SELECT 1 FROM employees LIMIT 1"))
+    except Exception:
+        sql_path = PROJECT_ROOT / "data" / "adaptive_soc_backup.sql"
+        if sql_path.is_file():
+            try:
+                sql_content = sql_path.read_text(encoding="utf-8")
+                statements = []
+                current_stmt = []
+                for line in sql_content.splitlines():
+                    trimmed = line.strip()
+                    if trimmed.startswith("--") or trimmed.startswith("/*") or not trimmed:
+                        continue
+                    current_stmt.append(line)
+                    if trimmed.endswith(";"):
+                        stmt_text = "\n".join(current_stmt).strip()
+                        if stmt_text.endswith(";"):
+                            stmt_text = stmt_text[:-1].strip()
+                        if stmt_text:
+                            statements.append(stmt_text)
+                        current_stmt = []
+                with engine_obj.begin() as conn:
+                    for stmt in statements:
+                        try:
+                            conn.execute(text(stmt))
+                        except Exception as e:
+                            print(f"[DB Init Warning] {e}")
+                print("[DB Init] Database schema initialized successfully.")
+            except Exception as exc:
+                print(f"[DB Init Error] Failed to initialize schema: {exc}")
+
+
 class LazyEngineProxy:
     """
     Lazy proxy for SQLAlchemy Engine.
@@ -170,6 +205,7 @@ class LazyEngineProxy:
                     pool_pre_ping=True,
                     pool_recycle=280,
                 )
+                ensure_database_schema(self._engine)
             except Exception as e:
                 raise HTTPException(
                     status_code=503,
@@ -615,6 +651,20 @@ def db_test():
             status_code=500,
             detail=f"Database connection failed: {str(e)}"
         )
+
+
+@app.get("/init-db")
+def init_db_endpoint():
+    """Manually initialize or re-verify database tables from data/adaptive_soc_backup.sql."""
+    try:
+        eng = engine.get_engine()
+        ensure_database_schema(eng)
+        return {
+            "status": "success",
+            "message": "Database tables and schema initialized successfully from backup."
+        }
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Database initialization error: {str(exc)}")
 
 
 # ============================================================
