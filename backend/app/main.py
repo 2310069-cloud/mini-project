@@ -200,8 +200,18 @@ class LazyEngineProxy:
                     )
                 )
             try:
+                connect_args = {}
+                resolved_url_str = str(resolved_url)
+                if "tidbcloud.com" in resolved_url_str or "ssl" in resolved_url_str.lower():
+                    ca_path = Path("/etc/ssl/certs/ca-certificates.crt")
+                    if ca_path.is_file():
+                        connect_args["ssl"] = {"ca": str(ca_path)}
+                    else:
+                        connect_args["ssl"] = {"check_hostname": False}
+
                 self._engine = create_engine(
                     resolved_url,
+                    connect_args=connect_args,
                     pool_pre_ping=True,
                     pool_recycle=280,
                 )
