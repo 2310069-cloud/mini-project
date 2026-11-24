@@ -1,0 +1,134 @@
+[
+  {
+    "timestamp": "2026-08-24T09:00:01.000Z",
+    "rule": { "id": "60122", "level": 10, "description": "Multiple Windows logon failures (possible attack)." },
+    "agent": { "id": "003", "name": "WIN-LABHOST-01" },
+    "data": {
+      "win": {
+        "eventdata": { "ipAddress": "203.0.113.14", "targetUserName": "admin", "logonType": "3", "status": "0xC000006D" },
+        "system": { "eventID": "4625" }
+      }
+    }
+  },
+  {
+    "timestamp": "2026-08-24T09:00:03.400Z",
+    "rule": { "id": "60122", "level": 10, "description": "Multiple Windows logon failures (possible attack)." },
+    "agent": { "id": "003", "name": "WIN-LABHOST-01" },
+    "data": {
+      "win": {
+        "eventdata": { "ipAddress": "203.0.113.21", "targetUserName": "admin", "logonType": "3", "status": "0xC000006D" },
+        "system": { "eventID": "4625" }
+      }
+    }
+  },
+  {
+    "timestamp": "2026-08-24T09:00:06.100Z",
+    "rule": { "id": "60122", "level": 10, "description": "Multiple Windows logon failures (possible attack)." },
+    "agent": { "id": "003", "name": "WIN-LABHOST-01" },
+    "data": {
+      "win": {
+        "eventdata": { "ipAddress": "203.0.113.33", "targetUserName": "admin", "logonType": "3", "status": "0xC000006D" },
+        "system": { "eventID": "4625" }
+      }
+    }
+  },
+  {
+    "timestamp": "2026-08-24T09:00:09.750Z",
+    "rule": { "id": "60122", "level": 10, "description": "Multiple Windows logon failures (possible attack)." },
+    "agent": { "id": "003", "name": "WIN-LABHOST-01" },
+    "data": {
+      "win": {
+        "eventdata": { "ipAddress": "203.0.113.47", "targetUserName": "admin", "logonType": "3", "status": "0xC000006D" },
+        "system": { "eventID": "4625" }
+      }
+    }
+  },
+  {
+    "timestamp": "2026-08-24T09:00:12.200Z",
+    "rule": { "id": "60122", "level": 10, "description": "Multiple Windows logon failures (possible attack)." },
+    "agent": { "id": "003", "name": "WIN-LABHOST-01" },
+    "data": {
+      "win": {
+        "eventdata": { "ipAddress": "203.0.113.58", "targetUserName": "admin", "logonType": "3", "status": "0xC000006D" },
+        "system": { "eventID": "4625" }
+      }
+    }
+  },
+  {
+    "timestamp": "2026-08-24T09:00:15.900Z",
+    "rule": { "id": "60122", "level": 10, "description": "Multiple Windows logon failures (possible attack)." },
+    "agent": { "id": "003", "name": "WIN-LABHOST-01" },
+    "data": {
+      "win": {
+        "eventdata": { "ipAddress": "203.0.113.14", "targetUserName": "admin", "logonType": "3", "status": "0xC000006D" },
+        "system": { "eventID": "4625" }
+      }
+    }
+  },
+  {
+    "timestamp": "2026-08-24T09:00:18.300Z",
+    "rule": { "id": "60122", "level": 10, "description": "Multiple Windows logon failures (possible attack)." },
+    "agent": { "id": "007", "name": "WIN-LABHOST-02" },
+    "data": {
+      "win": {
+        "eventdata": { "ipAddress": "198.51.100.42", "targetUserName": "admin", "logonType": "3", "status": "0xC000006D" },
+        "system": { "eventID": "4625" }
+      }
+    }
+  },
+  {
+    "timestamp": "2026-08-24T09:00:21.000Z",
+    "rule": { "id": "60122", "level": 10, "description": "Multiple Windows logon failures (possible attack)." },
+    "agent": { "id": "003", "name": "WIN-LABHOST-01" },
+    "data": {
+      "win": {
+        "eventdata": { "ipAddress": "203.0.113.71", "targetUserName": "admin", "logonType": "3", "status": "0xC000006D" },
+        "system": { "eventID": "4625" }
+      }
+    }
+  },
+  {
+    "timestamp": "2026-08-24T09:00:24.500Z",
+    "rule": { "id": "60122", "level": 10, "description": "Multiple Windows logon failures (possible attack)." },
+    "agent": { "id": "003", "name": "WIN-LABHOST-01" },
+    "data": {
+      "win": {
+        "eventdata": { "ipAddress": "203.0.113.88", "targetUserName": "admin", "logonType": "3", "status": "0xC000006D" },
+        "system": { "eventID": "4625" }
+      }
+    }
+  },
+  {
+    "timestamp": "2026-08-24T09:00:27.800Z",
+    "rule": { "id": "60122", "level": 10, "description": "Multiple Windows logon failures (possible attack)." },
+    "agent": { "id": "003", "name": "WIN-LABHOST-01" },
+    "data": {
+      "win": {
+        "eventdata": { "ipAddress": "203.0.113.99", "targetUserName": "admin", "logonType": "3", "status": "0xC000006D" },
+        "system": { "eventID": "4625" }
+      }
+    }
+  },
+  {
+    "timestamp": "2026-08-24T09:00:30.100Z",
+    "rule": { "id": "60122", "level": 10, "description": "Multiple Windows logon failures (possible attack)." },
+    "agent": { "id": "003", "name": "WIN-LABHOST-01" },
+    "data": {
+      "win": {
+        "eventdata": { "ipAddress": "203.0.113.21", "targetUserName": "admin", "logonType": "3", "status": "0xC000006D" },
+        "system": { "eventID": "4625" }
+      }
+    }
+  },
+  {
+    "timestamp": "2026-08-24T09:00:33.600Z",
+    "rule": { "id": "60122", "level": 10, "description": "Multiple Windows logon failures (possible attack)." },
+    "agent": { "id": "007", "name": "WIN-LABHOST-02" },
+    "data": {
+      "win": {
+        "eventdata": { "ipAddress": "198.51.100.42", "targetUserName": "admin", "logonType": "3", "status": "0xC000006D" },
+        "system": { "eventID": "4625" }
+      }
+    }
+  }
+]

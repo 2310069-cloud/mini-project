@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Adaptive SOC — AI-Driven Security Operations Center</title>
+  <meta name="description" content="AI-driven adaptive SOC for rotating-source authentication attacks. Local-only AI, no external APIs, safe synthetic attack simulation.">
+  <script>
+    if (window.location.protocol === 'file:') {
+      window.location.replace('http://127.0.0.1:8000/');
+    }
+  </script>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <!-- Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+
+  <!-- Charts -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="app-root"></div>
+
+  <!-- App scripts, load order matters -->
+  <script src="js/config.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/state.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/explain.js?v=20260928"></script>
+  <script src="js/simulator.js"></script>
+  <script src="js/wazuh.js"></script>
+  <script src="js/engine.js"></script>
+  <script src="js/ai.js"></script>
+  <script src="js/report.js?v=20260928"></script>
+  <script src="js/pipeline.js"></script>
+  <script src="js/pages.js?v=20260928"></script>
+  <script src="js/app.js?v=20260928"></script>
+</body>
+</html>

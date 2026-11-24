@@ -1,0 +1,236 @@
+import React, { useMemo, useState } from 'react'
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from 'recharts'
+import type { TimeRange } from '../types'
+import { Card, CardHeader } from './ui/Card'
+import { TimeRangeSelector } from './ui/TimeRangeSelector'
+import { Activity } from 'lucide-react'
+import { useSoc } from '../context/SocContext'
+import { formatTimeShort } from '../lib/format'
+
+const SERIES = [
+  { key: 'authFailures', name: 'Failed Logins (Events)', color: '#4c9aff' },
+  { key: 'detections', name: 'Brute-Force Detections', color: '#f0883e' },
+  { key: 'firewallBlocks', name: 'Firewall Blocks (Responses)', color: '#e5484d' },
+  { key: 'verifiedStopped', name: 'Verified Stopped (Verifications)', color: '#3fb950' },
+] as const
+
+interface RealTimelinePoint {
+  time: string
+  timestamp: number
+  authFailures: number
+  detections: number
+  firewallBlocks: number
+  verifiedStopped: number
+}
+
+function CustomTooltip({ active, payload, label }: any) {
+  if (!active || !payload?.length) return null
+  return (
+    <div className="bg-surface-3 border border-surface-borderLight rounded-sm px-3 py-2 shadow-panel">
+      <div className="text-[11px] text-text-muted font-data mb-1.5">{label}</div>
+      <div className="space-y-1">
+        {payload
+          .filter((p: any) => p.value !== undefined)
+          .map((p: any) => (
+            <div key={p.dataKey} className="flex items-center gap-2 text-[11.5px]">
+              <span className="h-2 w-2 rounded-sm" style={{ backgroundColor: p.color }} />
+              <span className="text-text-secondary">{p.name}:</span>
+              <span className="font-data font-semibold text-text-primary tabular">{p.value}</span>
+            </div>
+          ))}
+      </div>
+    </div>
+  )
+}
+
+export function ThreatTimeline({
+  timeRange,
+  onTimeRangeChange,
+}: {
+  timeRange: TimeRange
+  onTimeRangeChange: (r: TimeRange) => void
+}) {
+  const { securityEvents, detections, responseActions, verifications, backendConnected } = useSoc()
+  const [hidden, setHidden] = useState<Set<string>>(new Set())
+
+  const data: RealTimelinePoint[] = useMemo(() => {
+    // If no events loaded yet, show empty points
+    if (!securityEvents || securityEvents.length === 0) {
+      return []
+    }
+
+    // Collect all timestamps from real records
+    const allTimestamps: { type: 'event' | 'detection' | 'response' | 'verification'; ts: number }[] = []
+
+    for (const e of securityEvents) {
+      const ts = new Date(e.timestamp).getTime()
+      if (!isNaN(ts)) allTimestamps.push({ type: 'event', ts })
+    }
+    for (const d of detections) {
+      const ts = new Date(d.timestamp).getTime()
+      if (!isNaN(ts)) allTimestamps.push({ type: 'detection', ts })
+    }
+    for (const r of responseActions) {
+      const ts = new Date(r.timestamp).getTime()
+      if (!isNaN(ts)) allTimestamps.push({ type: 'response', ts })
+    }
+    for (const v of verifications) {
+      const ts = new Date(v.timestamp).getTime()
+      if (!isNaN(ts) && v.result === 'STOPPED') {
+        allTimestamps.push({ type: 'verification', ts })
+      }
+    }
+
+    if (allTimestamps.length === 0) return []
+
+    allTimestamps.sort((a, b) => a.ts - b.ts)
+    const minTs = allTimestamps[0].ts
+    const maxTs = allTimestamps[allTimestamps.length - 1].ts
+
+    // Group into 12 to 24 chronological buckets across the actual attack incidents
+    const numBuckets = 16
+    const duration = Math.max(maxTs - minTs, 60_000)
+    const bucketSize = duration / numBuckets
+
+    const buckets: RealTimelinePoint[] = []
+
+    for (let i = 0; i < numBuckets; i++) {
+      const start = minTs + i * bucketSize
+      const end = start + bucketSize
+      const mid = new Date(start + bucketSize / 2)
+
+      const month = mid.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+      const time = formatTimeShort(mid.toISOString())
+      const label = `${month} ${time}`
+
+      let authFailures = 0
+      let detCount = 0
+      let respCount = 0
+      let verifCount = 0
+
+      for (const item of allTimestamps) {
+        if (item.ts >= start && (i === numBuckets - 1 ? item.ts <= end : item.ts < end)) {
+          if (item.type === 'event') authFailures++
+          else if (item.type === 'detection') detCount++
+          else if (item.type === 'response') respCount++
+          else if (item.type === 'verification') verifCount++
+        }
+      }
+
+      buckets.push({
+        time: label,
+        timestamp: start,
+        authFailures,
+        detections: detCount,
+        firewallBlocks: respCount,
+        verifiedStopped: verifCount,
+      })
+    }
+
+    return buckets
+  }, [securityEvents, detections, responseActions, verifications])
+
+  const toggle = (key: string) => {
+    setHidden((prev) => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
+  }
+
+  return (
+    <Card>
+      <CardHeader
+        title="Threat Activity Timeline"
+        subtitle={
+          backendConnected
+            ? `Actual telemetry from ${securityEvents.length} events across confirmed attack sequences`
+            : 'Aggregated telemetry timeline'
+        }
+        icon={<Activity size={16} />}
+        action={<TimeRangeSelector value={timeRange} onChange={onTimeRangeChange} />}
+      />
+
+      <div className="h-[280px] -ml-2">
+        {data.length === 0 ? (
+          <div className="h-full flex items-center justify-center text-text-muted text-xs">
+            Loading real telemetry records...
+          </div>
+        ) : (
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={data} margin={{ top: 4, right: 12, left: 0, bottom: 0 }}>
+              <defs>
+                {SERIES.map((s) => (
+                  <linearGradient key={s.key} id={`grad-${s.key}`} x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={s.color} stopOpacity={0.35} />
+                    <stop offset="100%" stopColor={s.color} stopOpacity={0.02} />
+                  </linearGradient>
+                ))}
+              </defs>
+              <CartesianGrid strokeDasharray="0" stroke="#1c222b" vertical={false} />
+              <XAxis
+                dataKey="time"
+                tick={{ fill: '#5f6b7a', fontSize: 10, fontFamily: 'JetBrains Mono' }}
+                axisLine={{ stroke: '#232932' }}
+                tickLine={false}
+                minTickGap={40}
+              />
+              <YAxis
+                tick={{ fill: '#5f6b7a', fontSize: 10.5, fontFamily: 'JetBrains Mono' }}
+                axisLine={false}
+                tickLine={false}
+                width={32}
+                allowDecimals={false}
+              />
+              <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#2b323d', strokeWidth: 1 }} />
+              {SERIES.map((s) =>
+                hidden.has(s.key) ? null : (
+                  <Area
+                    key={s.key}
+                    type="monotone"
+                    dataKey={s.key}
+                    name={s.name}
+                    stroke={s.color}
+                    strokeWidth={1.75}
+                    fill={`url(#grad-${s.key})`}
+                    dot={false}
+                    activeDot={{ r: 3 }}
+                    isAnimationActive={false}
+                  />
+                )
+              )}
+            </AreaChart>
+          </ResponsiveContainer>
+        )}
+      </div>
+
+      {/* Custom legend - clickable to toggle series */}
+      <div className="flex flex-wrap gap-x-4 gap-y-1.5 mt-3 pt-3 border-t border-surface-border">
+        {SERIES.map((s) => {
+          const isHidden = hidden.has(s.key)
+          return (
+            <button
+              key={s.key}
+              onClick={() => toggle(s.key)}
+              className={`flex items-center gap-1.5 text-[11.5px] transition-opacity ${
+                isHidden ? 'opacity-35' : ''
+              }`}
+            >
+              <span className="h-2 w-2 rounded-sm" style={{ backgroundColor: s.color }} />
+              <span className="text-text-secondary">{s.name}</span>
+            </button>
+          )
+        })}
+      </div>
+    </Card>
+  )
+}

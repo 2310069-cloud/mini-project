@@ -1,0 +1,103 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html, body {
+  background-color: #0a0c10;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-feature-settings: "tnum" 1, "cv11" 1;
+}
+
+/* Thin, professional scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #232932;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #2b323d;
+}
+
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
+/* Monospace utility for technical data: IPs, IDs, hashes */
+.font-data {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  letter-spacing: -0.01em;
+}
+
+/* Table row hover */
+.tr-hover:hover {
+  background-color: rgba(255,255,255,0.025);
+}
+
+/* Focus ring - subtle, not glowy */
+.focus-ring:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 1px #3b82f6, 0 0 0 3px rgba(59,130,246,0.2);
+}
+
+/* Status dot pulse for "online/live" indicators */
+.dot-live {
+  position: relative;
+}
+.dot-live::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: currentColor;
+  animation: dot-ping 2s cubic-bezier(0,0,0.2,1) infinite;
+}
+@keyframes dot-ping {
+  0% { transform: scale(1); opacity: 0.6; }
+  70% { transform: scale(2.4); opacity: 0; }
+  100% { transform: scale(2.4); opacity: 0; }
+}
+
+/* Marching ants for "live" borders - used sparingly */
+@keyframes scanline {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100%); }
+}
+
+/* Utility: severity left-border accent for table rows/cards */
+.border-l-sev {
+  border-left-width: 3px;
+}
+
+/* Subtle grid background for chart panels / architecture diagram */
+.bg-grid {
+  background-image:
+    linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+/* Custom tooltip for recharts to match theme, applied via class override */
+.recharts-tooltip-wrapper {
+  outline: none !important;
+}
+
+/* Tabular layout helper */
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
