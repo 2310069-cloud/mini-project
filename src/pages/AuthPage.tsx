@@ -11,15 +11,15 @@ import { useSoc } from '../context/SocContext'
 import { formatTime } from '../lib/format'
 
 export function AuthPage() {
-  const { timeRange, setTimeRange } = useSoc()
-  const chartData = useMemo(() => buildAuthChart(timeRange), [timeRange])
+  const { timeRange, setTimeRange, authEvents, activeAttack } = useSoc()
+  const chartData = useMemo(() => buildAuthChart(timeRange, activeAttack), [timeRange, activeAttack])
 
-  const successCount = AUTH_EVENTS.filter((e) => e.result === 'Success').length
-  const failureCount = AUTH_EVENTS.filter((e) => e.result === 'Failure').length
-  const privilegedLogins = AUTH_EVENTS.filter((e) => e.privileged && e.result === 'Success').length
+  const successCount = authEvents.filter((e) => e.result === 'Success').length
+  const failureCount = authEvents.filter((e) => e.result === 'Failure').length
+  const privilegedLogins = authEvents.filter((e) => e.privileged && e.result === 'Success').length
   const lockouts = 3 // demo constant
 
-  const recentEvents = AUTH_EVENTS.slice(0, 30)
+  const recentEvents = authEvents.slice(0, 30)
 
   return (
     <div className="p-4 lg:p-6 space-y-5 max-w-[1600px] mx-auto">

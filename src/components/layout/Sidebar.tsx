@@ -30,7 +30,7 @@ const NAV_ITEMS: NavItem[] = [
 ]
 
 export function Sidebar({ mobileOpen, onCloseMobile }: { mobileOpen: boolean; onCloseMobile: () => void }) {
-  const { currentPage, navigateTo } = useSoc()
+  const { currentPage, navigateTo, setSimulatorOpen } = useSoc()
 
   const handleNav = (id: string) => {
     navigateTo(id)
@@ -43,9 +43,8 @@ export function Sidebar({ mobileOpen, onCloseMobile }: { mobileOpen: boolean; on
         <div className="fixed inset-0 bg-black/60 z-40 lg:hidden" onClick={onCloseMobile} />
       )}
       <aside
-        className={`fixed lg:sticky top-0 left-0 z-50 h-screen w-[248px] bg-surface-1 border-r border-surface-border flex flex-col shrink-0 transition-transform duration-200 ${
-          mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-        }`}
+        className={`fixed lg:sticky top-0 left-0 z-50 h-screen w-[248px] bg-surface-1 border-r border-surface-border flex flex-col shrink-0 transition-transform duration-200 ${mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+          }`}
       >
         {/* Brand */}
         <div className="h-14 flex items-center justify-between px-4 border-b border-surface-border shrink-0">
@@ -72,11 +71,10 @@ export function Sidebar({ mobileOpen, onCloseMobile }: { mobileOpen: boolean; on
                 <li key={item.id}>
                   <button
                     onClick={() => handleNav(item.id)}
-                    className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-sm text-[13px] font-medium transition-colors group relative ${
-                      active
+                    className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-sm text-[13px] font-medium transition-colors group relative ${active
                         ? 'bg-accent/12 text-accent'
                         : 'text-text-secondary hover:bg-white/[0.04] hover:text-text-primary'
-                    }`}
+                      }`}
                   >
                     {active && <span className="absolute left-0 top-1.5 bottom-1.5 w-[2.5px] bg-accent rounded-full" />}
                     <span className={active ? 'text-accent' : 'text-text-muted group-hover:text-text-secondary'}>
@@ -94,6 +92,22 @@ export function Sidebar({ mobileOpen, onCloseMobile }: { mobileOpen: boolean; on
             })}
           </ul>
         </nav>
+
+        {/* Quick Attack Simulator Launcher */}
+        <div className="p-2.5 border-t border-surface-border shrink-0">
+          <button
+            onClick={() => { setSimulatorOpen(true); onCloseMobile(); }}
+            className="w-full flex items-center justify-between p-2 rounded bg-accent/10 border border-accent/30 text-accent text-xs font-semibold hover:bg-accent/20 transition-colors"
+          >
+            <span className="flex items-center gap-2">
+              <Zap size={14} className="text-accent" />
+              Attack Simulator
+            </span>
+            <span className="text-[9px] px-1.5 py-0.2 rounded bg-accent text-surface-0 font-bold uppercase">
+              LIVE
+            </span>
+          </button>
+        </div>
 
         {/* System status */}
         <div className="border-t border-surface-border p-3.5 shrink-0">

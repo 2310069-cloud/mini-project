@@ -7,6 +7,7 @@ import type { TimeRange } from '../types'
 import { Card, CardHeader } from './ui/Card'
 import { TimeRangeSelector } from './ui/TimeRangeSelector'
 import { Activity } from 'lucide-react'
+import { useSoc } from '../context/SocContext'
 
 const SERIES = [
   { key: 'normal', name: 'Normal Activity', color: '#8b96a5' },
@@ -39,7 +40,8 @@ function CustomTooltip({ active, payload, label }: any) {
 }
 
 export function ThreatTimeline({ timeRange, onTimeRangeChange }: { timeRange: TimeRange; onTimeRangeChange: (r: TimeRange) => void }) {
-  const data = useMemo(() => buildThreatTimeline(timeRange), [timeRange])
+  const { activeAttack } = useSoc()
+  const data = useMemo(() => buildThreatTimeline(timeRange, activeAttack), [timeRange, activeAttack])
   const [hidden, setHidden] = useState<Set<string>>(new Set())
 
   const toggle = (key: string) => {

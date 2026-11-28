@@ -13,8 +13,7 @@ import type { Alert, AlertStatus } from '../types'
 import { useSoc } from '../context/SocContext'
 
 export function AlertsPage() {
-  const { currentParams, navigateTo } = useSoc()
-  const [alerts, setAlerts] = useState<Alert[]>(INITIAL_ALERTS)
+  const { currentParams, navigateTo, alerts, updateAlert } = useSoc()
   const [severity, setSeverity] = useState('All')
   const [status, setStatus] = useState('All')
   const [search, setSearch] = useState('')
@@ -37,7 +36,7 @@ export function AlertsPage() {
   }, [alerts, severity, status, search])
 
   const updateAlertStatus = (id: string, newStatus: AlertStatus) => {
-    setAlerts((prev) => prev.map((a) => (a.id === id ? { ...a, status: newStatus } : a)))
+    updateAlert(id, { status: newStatus })
     setSelected((prev) => (prev && prev.id === id ? { ...prev, status: newStatus } : prev))
   }
 

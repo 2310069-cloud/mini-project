@@ -1,6 +1,6 @@
 import { makeRng, randInt, jitter } from '../lib/random'
 import { DEMO_NOW } from './generator'
-import type { TimeRange } from '../types'
+import type { TimeRange, LiveAttackState } from '../types'
 
 const rng = makeRng(55291)
 
@@ -22,7 +22,7 @@ const RANGE_CONFIG: Record<TimeRange, { points: number; stepMs: number; labelFmt
   '7d': { points: 42, stepMs: 4 * 60 * 60_000, labelFmt: (d) => d.toLocaleDateString('en-US', { weekday: 'short', hour: '2-digit', hour12: false }) },
 }
 
-export function buildThreatTimeline(range: TimeRange): TimelinePoint[] {
+export function buildThreatTimeline(range: TimeRange, activeAttack?: LiveAttackState | null): TimelinePoint[] {
   const cfg = RANGE_CONFIG[range]
   const pts: TimelinePoint[] = []
   const now = DEMO_NOW.getTime()
@@ -67,6 +67,14 @@ export function buildThreatTimeline(range: TimeRange): TimelinePoint[] {
       }
     }
 
+    // Dynamic Live Attack Spike on real-time attacks!
+    if (activeAttack && (activeAttack.status === 'running' || activeAttack.status === 'detected')) {
+      if (activeAttack.attackType === 'brute-force' && i <= 2) {
+        bruteForce = Math.max(bruteForce, 38 + activeAttack.currentAttempt * 7)
+        authFailures = Math.max(authFailures, 22 + activeAttack.currentAttempt * 4)
+      }
+    }
+
     pts.push({
       time: cfg.labelFmt(d),
       ts,
@@ -87,20 +95,38 @@ export interface AuthChartPoint {
   failure: number
 }
 
-export function buildAuthChart(range: TimeRange): AuthChartPoint[] {
+export function buildAuthChart(range: TimeRange, activeAttack?: LiveAttackState | null): AuthChartPoint[] {
   const cfg = RANGE_CONFIG[range]
   const now = DEMO_NOW.getTime()
   const pts: AuthChartPoint[] = []
   for (let i = cfg.points - 1; i >= 0; i--) {
     const ts = now - i * cfg.stepMs
+    const d = new Date(ts)
     const minutesFromNow = (now - ts) / 60000
-    const inBruteWindow = minutesFromNow >= 0.6 && minutesFromNow <= 9.5
-    const success = randInt(rng, 6, 18)
-    let failure = randInt(rng, 1, 5)
-    if ((range === '15m' || range === '1h') && inBruteWindow) {
-      failure += randInt(rng, 16, 28)
+
+    let success = randInt(rng, 30, 85)
+    let failure = randInt(rng, 1, 6)
+
+    if (minutesFromNow >= 0.6 && minutesFromNow <= 9.5) {
+      failure += randInt(rng, 14, 28)
     }
-    pts.push({ time: cfg.labelFmt(new Date(ts)), success, failure })
+
+    // Dynamic live attack spike in auth chart
+    if (activeAttack && (activeAttack.status === 'running' || activeAttack.status === 'detected')) {
+      if (i <= 2) {
+        if (activeAttack.attackType === 'brute-force') {
+          failure += 18 + activeAttack.currentAttempt * 5
+        } else {
+          success += 12
+        }
+      }
+    }
+
+    pts.push({
+      time: cfg.labelFmt(d),
+      success,
+      failure,
+    })
   }
   return pts
 }
@@ -129,3 +155,4 @@ export function buildNetworkChart(range: TimeRange): NetworkChartPoint[] {
   }
   return pts
 }
+

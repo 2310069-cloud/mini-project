@@ -11,22 +11,22 @@ import type { SecurityEvent } from '../types'
 import { useSoc } from '../context/SocContext'
 
 export function EventsPage() {
-  const { currentParams } = useSoc()
+  const { currentParams, securityEvents } = useSoc()
   const [severity, setSeverity] = useState('All')
   const [status, setStatus] = useState('All')
   const [source, setSource] = useState('All')
   const [search, setSearch] = useState('')
   const [selected, setSelected] = useState<SecurityEvent | null>(
-    SECURITY_EVENTS.find((e) => e.id === currentParams.id) ?? null
+    securityEvents.find((e) => e.id === currentParams.id) ?? null
   )
   const [page, setPage] = useState(0)
   const pageSize = 50
 
-  const sources = useMemo(() => Array.from(new Set(SECURITY_EVENTS.map((e) => e.source))), [])
-  const statuses = useMemo(() => Array.from(new Set(SECURITY_EVENTS.map((e) => e.status))), [])
+  const sources = useMemo(() => Array.from(new Set(securityEvents.map((e) => e.source))), [securityEvents])
+  const statuses = useMemo(() => Array.from(new Set(securityEvents.map((e) => e.status))), [securityEvents])
 
   const filtered = useMemo(() => {
-    return SECURITY_EVENTS.filter((e) => {
+    return securityEvents.filter((e) => {
       if (severity !== 'All' && e.severity !== severity) return false
       if (status !== 'All' && e.status !== status) return false
       if (source !== 'All' && e.source !== source) return false
@@ -40,7 +40,7 @@ export function EventsPage() {
       }
       return true
     })
-  }, [severity, status, source, search])
+  }, [securityEvents, severity, status, source, search])
 
   const paged = filtered.slice(page * pageSize, (page + 1) * pageSize)
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize))
@@ -93,10 +93,30 @@ export function EventsPage() {
                     e.severity === 'LOW' ? 'border-l-sev-low' : 'border-l-transparent'
                   }`}
                 >
-                  <td className="px-4 py-2 font-data text-text-secondary whitespace-nowrap">{formatTime(e.timestamp)}</td>
+                  <td className="px-4 py-2 font-data text-text-secondary whitespace-nowrap">
+                    {e.isLiveAttack ? (
+                      <span className="text-sev-critical font-bold flex items-center gap-1">
+                        <span className="h-1.5 w-1.5 rounded-full bg-sev-critical animate-ping" />
+                        {formatTime(e.timestamp)}
+                      </span>
+                    ) : (
+                      formatTime(e.timestamp)
+                    )}
+                  </td>
                   <td className="px-2 py-2"><SeverityBadge severity={e.severity} size="sm" /></td>
-                  <td className="px-2 py-2 text-text-secondary whitespace-nowrap">{e.source}</td>
-                  <td className="px-2 py-2 text-text-primary font-medium whitespace-nowrap">{e.eventType}</td>
+                  <td className="px-2 py-2 text-text-secondary whitespace-nowrap">
+                    {e.isLiveAttack ? (
+                      <span className="text-xxs px-1.5 py-0.5 rounded font-bold uppercase bg-sev-critical/20 text-sev-critical border border-sev-critical/40">
+                        ⚡ LIVE ATTACK
+                      </span>
+                    ) : (
+                      e.source
+                    )}
+                  </td>
+                  <td className="px-2 py-2 text-text-primary font-medium whitespace-nowrap">
+                    {e.eventType}
+                    {e.isLiveAttack && <span className="text-xxs text-text-muted block truncate max-w-xs">{e.description}</span>}
+                  </td>
                   <td className="px-2 py-2 font-data text-text-secondary whitespace-nowrap">{e.sourceIp}</td>
                   <td className="px-2 py-2 font-data text-text-secondary hidden lg:table-cell whitespace-nowrap">{e.destination}</td>
                   <td className="px-2 py-2 font-data text-text-secondary hidden md:table-cell whitespace-nowrap">{e.user}</td>

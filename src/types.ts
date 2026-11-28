@@ -23,6 +23,7 @@ export interface SecurityEvent {
   eventId?: string // windows event id / linux facility
   description?: string
   raw?: string
+  isLiveAttack?: boolean
 }
 
 export type AlertStatus = 'Open' | 'Investigating' | 'Contained' | 'Suppressed' | 'Closed'
@@ -220,3 +221,115 @@ export interface ChatMessage {
 }
 
 export type TimeRange = '15m' | '1h' | '24h' | '7d'
+
+// ============================================================================
+// Wazuh Threat Intelligence & Live Attack Simulation Types
+// ============================================================================
+
+export interface WazuhThreatIntelEntry {
+  ip: string
+  reputation: 'Critical Malicious' | 'High Risk' | 'Suspicious' | 'Clean'
+  threatScore: number
+  threatActor?: string
+  classification: string
+  wazuhRuleId: string
+  wazuhRuleDescription: string
+  mitreTactic: string
+  mitreTechnique: string
+  country: string
+  countryCode: string
+  city: string
+  asn: string
+  reportsCount: number
+  lastSeen: string
+  knownCve?: string
+  confidence: number
+  status: 'Active Threat' | 'Monitored' | 'Whitelisted'
+}
+
+export type AttackType = 'brute-force' | 'normal-login'
+
+export interface LiveLogItem {
+  id: string
+  timestamp: string
+  level: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW' | 'INFO'
+  message: string
+  ip: string
+  user: string
+  host: string
+  eventId: string
+  rule: string
+  isWazuhMatch?: boolean
+  details?: string
+}
+
+export interface LiveAttackState {
+  status: 'idle' | 'running' | 'detected' | 'mitigating' | 'solved'
+  attackType: AttackType
+  targetHost: string
+  targetUser: string
+  sourceIp: string
+  matchedIntel: WazuhThreatIntelEntry | null
+  progress: number
+  currentAttempt: number
+  totalAttempts: number
+  logs: LiveLogItem[]
+  alertId?: string
+  incidentId?: string
+  reportId?: string
+  startTime: string
+  endTime?: string
+}
+
+export interface AttackIncidentReport {
+  id: string
+  title: string
+  generatedAt: string
+  attackType: AttackType
+  severity: Severity
+  status: 'Contained & Resolved' | 'Clean Baseline Verified'
+  sourceIp: string
+  targetHost: string
+  targetUser: string
+  wazuhMatch: boolean
+  wazuhRuleId: string
+  wazuhRuleDescription: string
+  threatScore: number
+  reputation: string
+  country: string
+  asn: string
+  mitreTactic: string
+  mitreTechnique: string
+  totalAttempts: number
+  durationSeconds: number
+  aiSummary: string
+  aiVerdict: string
+  executiveSummary: string
+  remediationActions: string[]
+  recommendations: string[]
+  evidenceLogs: LiveLogItem[]
+}
+
+export interface EmailAlertConfig {
+  enabled: boolean
+  recipients: string[]
+  sendRealEmail: boolean
+}
+
+export interface DispatchedEmail {
+  id: string
+  timestamp: string
+  subject: string
+  recipients: string[]
+  bodyHtml: string
+  bodyText: string
+  status: 'Sending' | 'Delivered' | 'Failed'
+  relatedAttackId?: string
+  targetHost: string
+  sourceIp: string
+  targetUser: string
+  threatScore: number
+  wazuhRuleId: string
+}
+
+

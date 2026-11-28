@@ -1,8 +1,10 @@
-import React, { useState } from 'react'
-import { Settings as SettingsIcon, Shield, Bell, Users, Plug, Save } from 'lucide-react'
+import React, { useState, useEffect } from 'react'
+import { Settings as SettingsIcon, Shield, Bell, Users, Plug, Save, KeyRound, CheckCircle2, AlertTriangle, RefreshCw, Check } from 'lucide-react'
 import { Card, CardHeader } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
 import { Pill } from '../components/ui/Badge'
+import { useSoc } from '../context/SocContext'
+import { getSmtpConfigStatus, saveSmtpConfig } from '../lib/apiClient'
 
 const TABS = [
   { id: 'general', label: 'General', icon: SettingsIcon },
@@ -137,22 +139,229 @@ function DetectionSettings() {
 }
 
 function NotificationSettings() {
+  const { emailConfig, setEmailConfig, sendTestEmail, dispatchedEmails, setActiveEmailModal } = useSoc()
+  const [emails, setEmails] = useState<string[]>([
+    emailConfig.recipients[0] || '',
+    emailConfig.recipients[1] || '',
+    emailConfig.recipients[2] || '',
+    emailConfig.recipients[3] || '',
+  ])
+  const [savedSuccess, setSavedSuccess] = useState(false)
+  const [smtpUser, setSmtpUser] = useState('')
+  const [smtpPass, setSmtpPass] = useState('')
+  const [smtpSaving, setSmtpSaving] = useState(false)
+  const [smtpFeedback, setSmtpFeedback] = useState('')
+  const [smtpStatus, setSmtpStatus] = useState<{ configured: boolean; user?: string } | null>(null)
+
+  useEffect(() => {
+    getSmtpConfigStatus().then((st) => {
+      if (st) setSmtpStatus(st)
+    })
+  }, [])
+
+  const handleSaveSmtp = async () => {
+    if (!smtpUser || !smtpPass) return
+    setSmtpSaving(true)
+    setSmtpFeedback('Verifying connection with Google SMTP...')
+    try {
+      const res = await saveSmtpConfig(smtpUser, smtpPass)
+      if (res && res.success) {
+        setSmtpFeedback('✅ Google SMTP connected! Verification email sent.')
+        setSmtpStatus({ configured: true, user: smtpUser })
+      } else {
+        setSmtpFeedback(`❌ Error: ${res?.message || 'Verification failed. Check your App Password.'}`)
+      }
+    } catch {
+      setSmtpFeedback('❌ Failed to connect to server.')
+    } finally {
+      setSmtpSaving(false)
+    }
+  }
+
+  React.useEffect(() => {
+    setEmails([
+      emailConfig.recipients[0] || '2310069@ritindia.edu',
+      emailConfig.recipients[1] || '2410055@ritindia.edu',
+      emailConfig.recipients[2] || '2410015@ritindia.edu',
+      emailConfig.recipients[3] || '2410066@ritindia.edu',
+    ])
+  }, [emailConfig.recipients])
+
+  const handleEmailChange = (index: number, val: string) => {
+    const updated = [...emails]
+    updated[index] = val
+    setEmails(updated)
+  }
+
+  const handleSave = () => {
+    setEmailConfig({
+      ...emailConfig,
+      recipients: emails.filter((e) => e.trim().length > 0).slice(0, 4),
+    })
+    setSavedSuccess(true)
+    setTimeout(() => setSavedSuccess(false), 2000)
+  }
+
   return (
-    <Card>
-      <CardHeader title="Notification Preferences" subtitle="Control how and when alerts reach the SOC team" />
-      <SettingsRow label="Critical Incident Paging" description="Send PagerDuty alert on CRITICAL severity">
-        <Toggle defaultChecked />
-      </SettingsRow>
-      <SettingsRow label="Email Digest" description="Daily summary email at 06:00 local time">
-        <Toggle defaultChecked />
-      </SettingsRow>
-      <SettingsRow label="Desktop Notifications" description="Browser push notifications for new alerts">
-        <Toggle />
-      </SettingsRow>
-      <SettingsRow label="Slack Integration" description="Post alert summaries to #soc-alerts channel">
-        <Toggle defaultChecked />
-      </SettingsRow>
-    </Card>
+    <div className="space-y-4">
+      {/* 4 Inboxes Emergency Email Alert Section */}
+      <Card>
+        <CardHeader
+          title="Emergency Email Alert Dispatcher (Up to 4 Inboxes)"
+          subtitle="Automatically dispatches critical SOC incident emails to 4 team members upon Brute Force attack detection"
+        />
+
+        <div className="space-y-3 pt-2">
+          <div className="text-xs text-text-secondary leading-relaxed bg-surface-3/60 p-3 rounded border border-surface-borderLight">
+            <strong className="text-text-primary">Zero-API Real Email Dispatch:</strong> Whenever a live Brute Force attack is detected by the Wazuh AI engine, an urgent security dispatch is sent to these 4 email addresses with direct one-click threat containment controls.
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+            {[0, 1, 2, 3].map((index) => (
+              <div key={index} className="space-y-1">
+                <label className="text-xxs font-bold uppercase tracking-wider text-text-muted flex items-center justify-between">
+                  <span>Recipient Inbox #{index + 1}</span>
+                  {emails[index] && <span className="text-status-success font-data">Active</span>}
+                </label>
+                <input
+                  type="email"
+                  value={emails[index]}
+                  onChange={(e) => handleEmailChange(index, e.target.value)}
+                  placeholder={`e.g. security-lead-${index + 1}@yourcompany.com`}
+                  className="w-full bg-surface-3 border border-surface-borderLight rounded px-2.5 py-1.5 text-xs text-text-primary font-data focus:outline-none focus:border-accent"
+                />
+              </div>
+            ))}
+          </div>
+
+          <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-surface-border">
+            <div className="flex items-center gap-2">
+              <Button variant="primary" size="sm" onClick={handleSave}>
+                {savedSuccess ? 'Saved Successfully!' : 'Save Email Recipients'}
+              </Button>
+              <Button variant="secondary" size="sm" onClick={sendTestEmail}>
+                Send Test Alert to 4 Inboxes
+              </Button>
+            </div>
+
+            {dispatchedEmails.length > 0 && (
+              <button
+                onClick={() => setActiveEmailModal(dispatchedEmails[0])}
+                className="text-xs text-accent hover:underline font-data"
+              >
+                View Last Dispatched Alert ({dispatchedEmails.length} total)
+              </button>
+            )}
+          </div>
+        </div>
+      </Card>
+
+      {/* Background Google Gmail SMTP Section */}
+      <Card>
+        <CardHeader
+          title="Background Google SMTP (100% Guaranteed Direct Delivery)"
+          subtitle="Direct SSL/TLS dispatch via smtp.gmail.com:465 directly into @ritindia.edu Google Workspace inboxes"
+        />
+
+        <div className="space-y-4 pt-2">
+          <div className="flex items-center justify-between p-3 rounded bg-surface-3/60 border border-surface-borderLight">
+            <div className="flex items-center gap-2.5">
+              <KeyRound size={18} className="text-accent" />
+              <div>
+                <div className="text-xs font-bold text-text-primary flex items-center gap-2">
+                  <span>Google SMTP Status:</span>
+                  {smtpStatus?.configured ? (
+                    <span className="text-xxs px-2 py-0.5 rounded font-bold bg-status-success/20 text-status-success inline-flex items-center gap-1">
+                      <CheckCircle2 size={11} /> Connected ({smtpStatus.user})
+                    </span>
+                  ) : (
+                    <span className="text-xxs px-2 py-0.5 rounded font-bold bg-sev-medium/20 text-sev-medium inline-flex items-center gap-1">
+                      <AlertTriangle size={11} /> Not Configured (Zero-API Relay Fallback Active)
+                    </span>
+                  )}
+                </div>
+                <p className="text-xxs text-text-muted mt-0.5">
+                  Because @ritindia.edu uses Google Workspace, direct Gmail SMTP guarantees instant delivery to Primary Inbox without spam filtering.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-surface-2/60 p-3 rounded border border-surface-borderLight text-xs space-y-2">
+            <div className="font-semibold text-text-primary text-xs">
+              ⚡ How to get a free Google App Password in 20 seconds:
+            </div>
+            <ol className="list-decimal list-inside space-y-1 text-text-secondary text-xxs">
+              <li>Open your Google Account: <a href="https://myaccount.google.com/security" target="_blank" rel="noreferrer" className="text-accent underline">myaccount.google.com/security</a></li>
+              <li>Make sure <strong>2-Step Verification</strong> is ON.</li>
+              <li>Search or click <strong>App passwords</strong> (<a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noreferrer" className="text-accent underline">myaccount.google.com/apppasswords</a>).</li>
+              <li>Name it <code>AdaptiveSOC</code> and click Create. Google will give you a 16-character code (e.g. <code>abcd efgh ijkl mnop</code>).</li>
+              <li>Paste below and click <strong>Save & Connect SMTP</strong>!</li>
+            </ol>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <label className="text-xxs font-bold uppercase tracking-wider text-text-muted">
+                Your Gmail Address:
+              </label>
+              <input
+                type="email"
+                value={smtpUser}
+                onChange={(e) => setSmtpUser(e.target.value)}
+                placeholder="yourname@gmail.com"
+                className="w-full bg-surface-3 border border-surface-borderLight rounded px-2.5 py-1.5 text-xs text-text-primary font-mono focus:outline-none focus:border-accent"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xxs font-bold uppercase tracking-wider text-text-muted">
+                16-Character Google App Password:
+              </label>
+              <input
+                type="password"
+                value={smtpPass}
+                onChange={(e) => setSmtpPass(e.target.value)}
+                placeholder="xxxx xxxx xxxx xxxx"
+                className="w-full bg-surface-3 border border-surface-borderLight rounded px-2.5 py-1.5 text-xs text-text-primary font-mono focus:outline-none focus:border-accent"
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 pt-2">
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={handleSaveSmtp}
+              disabled={smtpSaving || !smtpUser || !smtpPass}
+              icon={smtpSaving ? <RefreshCw size={12} className="animate-spin" /> : <Check size={12} />}
+            >
+              {smtpSaving ? 'Verifying & Saving...' : 'Save & Connect Google SMTP'}
+            </Button>
+            {smtpFeedback && (
+              <span className="text-xs font-medium text-accent">
+                {smtpFeedback}
+              </span>
+            )}
+          </div>
+        </div>
+      </Card>
+
+      <Card>
+        <CardHeader title="General Notification Preferences" subtitle="Control how and when alerts reach the SOC team" />
+        <SettingsRow label="Critical Incident Paging" description="Send PagerDuty alert on CRITICAL severity">
+          <Toggle defaultChecked />
+        </SettingsRow>
+        <SettingsRow label="Email Digest" description="Daily summary email at 06:00 local time">
+          <Toggle defaultChecked />
+        </SettingsRow>
+        <SettingsRow label="Desktop Notifications" description="Browser push notifications for new alerts">
+          <Toggle />
+        </SettingsRow>
+        <SettingsRow label="Slack Integration" description="Post alert summaries to #soc-alerts channel">
+          <Toggle defaultChecked />
+        </SettingsRow>
+      </Card>
+    </div>
   )
 }
 
