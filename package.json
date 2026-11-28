@@ -6,7 +6,8 @@
     "dev": "vite",
     "dev:sandbox": "vite --host 0.0.0.0 --port 3000",
     "build": "vite build",
-    "preview": "vite preview --host 0.0.0.0 --port 3000",
+    "start": "vite preview",
+    "preview": "vite preview",
     "deploy": "npm run build && wrangler pages deploy dist",
     "clean-port": "fuser -k 3000/tcp 2>/dev/null || true"
   },

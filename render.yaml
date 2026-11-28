@@ -1,0 +1,12 @@
+services:
+  # 1. Node.js Full-Stack Web Service (Includes Real-time Ingestion & Email Dispatch APIs)
+  - type: web
+    name: adaptivesoc-dashboard
+    env: node
+    plan: free
+    branch: webapp
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_VERSION
+        value: 20
